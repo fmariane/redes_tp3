@@ -1,7 +1,6 @@
 import json
 import sys
-import requests
-from flask import Flask
+from flask import Flask, jsonify
 
 
 def parameterHandler():
@@ -26,10 +25,6 @@ def load_json(file):
         datastring = json.dumps(datastring)  # dump string
     return datastring
 
-
-# netfile = json.load(parameters["NETFILE"])
-# netixlanfile = json.load(parameters["NETIXLANFILE"])
-
 # endpoint /api/ix
 @mypeeringdb.route('/api/ix')
 def return_ix():
@@ -37,18 +32,47 @@ def return_ix():
     return ixfile
 
 
-# print('ESTE É O RETORO ix', return_ix())
+# endpoint /api/ixnets/{ix_id}
+@mypeeringdb.route('/api/ixnets/<int:ixid>')
+def return_nets(ixid):
+    json_dict = {}
+    ix_nets = {}
+    with open(parameters["NETIXLANFILE"], "r") as f:
+        json_dict = json.load(f)["data"]
+
+    for x in json_dict:  # cada x eh um dict
+
+        ix_id = x["ix_id"]
+        net_id = x["id"]
+
+        try:
+            ix_nets[ix_id].append(net_id)
+        except KeyError:
+            ix_nets[ix_id] = []
+
+    responsedata = {'data':ix_nets[ixid]}
+    return jsonify(responsedata)
 
 
-@mypeeringdb.route('/api/ixnets/<int:ix_id>')
-def return_net(ix_id):
+@mypeeringdb.route('/api/netname/<int:netid>')
+def return_net_name(netid):
+    json_dict = {}
+    ix_nets = {}
+    with open(parameters["NETFILE"], "r") as f:
+        json_dict = json.load(f)["data"]
 
-    # real_peeringdb_url = 'https://www.peeringdb.com/api/net/'+str(ix_id)
-    # ixnetsbyid = requests.get(url=real_peeringdb_url).json()
-    # return json.dumps(ixnetsbyid, indent=4)
+    for x in json_dict:  # cada x eh um dict
 
+        net_id = x["id"]
+        net_name = x["name"]
 
-# print('ESTE E O RETORNO NET', json.dumps(return_net(3), indent=4))
+        try:
+            ix_nets[net_id] = net_name
+        except KeyError:
+            sys.stderr.write("ERRO AO INSERIR CHAVE")
+
+    responsedata = {'data':ix_nets[netid]}
+    return jsonify(responsedata)
 
 PORT = int(parameters["my_PORT"])
 mypeeringdb.run(host='0.0.0.0', port=PORT, debug=True)
